@@ -137,3 +137,37 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Archivos sensibles y certificados
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Temporales y subidas locales
+tmp/
+temp/
+uploads/
+public/uploads/
+
+# Config locales que no deben versionarse
+config/*.local.json
+src/config/*.local.json
+
+# Bases de datos locales
+*.sqlite
+*.sqlite3
+*.db
+
+# Backups y paquetes
+*.bak
+*.zip
+*.rar
+*.7z
