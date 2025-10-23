@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const mercadopago = require('mercadopago');
 const cron = require('node-cron');
 const Config = require('./models/config');
@@ -28,30 +28,34 @@ mercadopago.configure({ access_token: process.env.MP_ACCESS_TOKEN });
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(express.json({ limit: '1mb' }));
 
-// CORS restringido por .env (ALLOWED_ORIGINS=dom1,dom2)
+// ==== CORS restringido por .env (ALLOWED_ORIGINS=dom1,dom2) ====
+const cors = require('cors');
+
 const allowed = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
 
 app.use(cors({
- origin: (origin, cb) => {
-  if (!origin) return cb(null, true); // herramientas locales / file://
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // herramientas locales / file://
 
-  try {
-    const url = new URL(origin);
-    const hostOk = (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
-    if (hostOk) return cb(null, true);
+    try {
+      const url = new URL(origin);
+      const hostOk = ['localhost', '127.0.0.1'].includes(url.hostname);
+      if (hostOk) return cb(null, true);
 
-    if (allowed.length === 0 || allowed.includes(origin)) return cb(null, true);
-    return cb(new Error('Origen no permitido: ' + origin));
-  } catch {
-    return cb(new Error('Origen inválido: ' + origin));
-  }
-},
-
+      if (allowed.length === 0 || allowed.includes(origin)) {
+        return cb(null, true);
+      }
+      return cb(new Error('Origen no permitido: ' + origin));
+    } catch {
+      return cb(new Error('Origen inválido: ' + origin));
+    }
+  },
   credentials: true
 }));
+
 
 // Rate limits para rutas sensibles
 const sensitiveLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
@@ -839,7 +843,7 @@ app.post('/registrar', async (req, res) => {
 });
 
 
-// Asegurate de tener arriba: const bcrypt = require('bcrypt');
+// Asegurate de tener arriba: const bcrypt = require('bcryptjs');
 
 app.post('/login', async (req, res) => {
   try {
