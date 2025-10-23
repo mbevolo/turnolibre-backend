@@ -28,9 +28,6 @@ mercadopago.configure({ access_token: process.env.MP_ACCESS_TOKEN });
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(express.json({ limit: '1mb' }));
 
-// ==== CORS restringido por .env (ALLOWED_ORIGINS=dom1,dom2) ====
-const cors = require('cors');
-
 const allowed = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
