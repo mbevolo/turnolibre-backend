@@ -1,0 +1,28 @@
+{
+  "name": "turnolibre-sever",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "celebrate": "^15.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "mercadopago": "^1.5.17",
+    "mongoose": "^8.14.0",
+    "node-cron": "^4.0.5",
+    "nodemailer": "^7.0.6",
+    "socket.io": "^4.8.1"
+  }
+}

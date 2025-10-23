@@ -1,0 +1,8 @@
+{
+  "Buenos Aires": ["La Plata", "Mar del Plata", "Bahía Blanca", "Quilmes"],
+  "Córdoba": ["Córdoba", "Villa María", "Villa Nueva"],
+  "Santa Fe": ["Rosario", "Santa Fe Capital", "Rafaela"],
+  "Mendoza": ["Mendoza Capital", "San Rafael"],
+  "Salta": ["Salta Capital", "Cafayate"],
+  "Tucumán": ["San Miguel de Tucumán", "Yerba Buena"]
+}
