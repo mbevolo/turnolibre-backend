@@ -18,6 +18,7 @@ const { celebrate, Joi, Segments, errors } = require('celebrate');
 const PaymentEvent = require('./models/PaymentEvent');
 const crypto = require('crypto');
 const { sendMail } = require('./utils/email');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 
@@ -27,6 +28,11 @@ mercadopago.configure({ access_token: process.env.MP_ACCESS_TOKEN });
 // ✅ Seguridad y middlewares
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(express.json({ limit: '1mb' }));
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 
 const allowed = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
@@ -64,10 +70,49 @@ app.use('/api/mercadopago', sensitiveLimiter);
 // ✅ Rutas
 app.use('/ubicaciones', ubicacionesRoute);
 app.use('/superadmin', superadminRoutes);
+// Login de club
+app.post('/login-club', async (req, res) => {
+  try {
+    console.log('POST /login-club body:', req.body);
 
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Faltan email o password' });
+    }
 
+    const club = await Club.findOne({ email });
+    if (!club) {
+      return res.status(401).json({ error: 'Email o contraseña inválidos' });
+    }
 
+    // ← clave del cambio: priorizamos passwordHash
+    const hashGuardado = club.passwordHash || club.password;
+    if (!hashGuardado) {
+      console.error('Club sin hash almacenado:', club._id, club.email);
+      return res.status(500).json({ error: 'Cuenta de club sin password almacenado' });
+    }
 
+    const ok = await bcrypt.compare(password, hashGuardado);
+    if (!ok) {
+      return res.status(401).json({ error: 'Email o contraseña inválidos' });
+    }
+
+    const token = jwt.sign(
+      { clubId: club._id, role: 'club' },
+      process.env.JWT_SECRET || 'dev-secret',
+      { expiresIn: '7d' }
+    );
+
+    console.log('✅ Login club OK:', club.email);
+    res.json({
+      token,
+      club: { id: club._id, email: club.email, nombre: club.nombre }
+    });
+  } catch (err) {
+    console.error('❌ Error en /login-club:', err);
+    res.status(500).json({ error: 'Error interno en login-club' });
+  }
+});
 
 
 mongoose.connect(process.env.MONGO_URI)
@@ -298,42 +343,63 @@ app.post('/api/mercadopago/webhook', async (req, res) => {
 
 // ✅ TUS RUTAS ORIGINALES:
 
+// === REEMPLAZAR COMPLETO ===
 app.post('/registro-club', async (req, res) => {
-    const { email, password, nombre, telefono, direccion, latitud, longitud, provincia, localidad } = req.body;
+  try {
+    console.log('POST /registro-club body:', req.body);
 
-    if (!email || !password || !nombre || !latitud || !longitud || !provincia || !localidad) {
-        return res.status(400).json({ error: 'Faltan campos obligatorios para registrar el club' });
+    let {
+      email,
+      password,
+      nombre,
+      telefono,
+      direccion,
+      latitud,
+      longitud,
+      provincia,
+      localidad
+    } = req.body || {};
+
+    email = (email || '').trim();
+    password = (password || '').trim();
+    nombre = (nombre || '').trim();
+    provincia = (provincia || '').trim();
+    localidad = (localidad || '').trim();
+
+    const lat = Number(latitud);
+    const lng = Number(longitud);
+
+    if (!email || !password || !nombre || !provincia || !localidad || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ error: 'Todos los campos obligatorios deben completarse.' });
     }
 
-    try {
-        const existe = await Club.findOne({ email });
-        if (existe) return res.status(400).json({ error: 'El club ya está registrado' });
+    const existe = await Club.findOne({ email });
+    if (existe) return res.status(400).json({ error: 'El club ya está registrado' });
 
-        const hash = await bcrypt.hash(password, 10);
-        const nuevoClub = new Club({
-            email,
-            password: hash,   
-            nombre,
-            telefono,
-            direccion,
-            latitud,
-            longitud,
-            provincia,
-            localidad
-        });
+    const hash = await bcrypt.hash(password, 10);
 
-        await nuevoClub.save();
-        res.json({ mensaje: 'Club registrado correctamente' });
-    } catch (error) {
-        console.error('❌ Error en /registro-club:', error);
+    const nuevoClub = new Club({
+      email,
+      passwordHash: hash,     // ← clave del cambio
+      nombre,
+      telefono,
+      direccion,
+      latitud: lat,           // ← aseguramos número
+      longitud: lng,          // ← aseguramos número
+      provincia,
+      localidad
+    });
 
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({ error: 'Todos los campos obligatorios deben completarse.' });
-        }
-
-        res.status(500).json({ error: 'Error al registrar club' });
-    }
+    await nuevoClub.save();
+    console.log('✅ Club registrado:', { email, nombre, provincia, localidad, lat, lng });
+    res.json({ mensaje: 'Club registrado correctamente' });
+  } catch (error) {
+    console.error('❌ Error en /registro-club:', error);
+    res.status(500).json({ error: 'Error al registrar club' });
+  }
 });
+
+
 
 app.put('/club/:id', async (req, res) => {
     const { nombre, telefono, provincia, localidad } = req.body;
@@ -349,22 +415,6 @@ app.put('/club/:id', async (req, res) => {
     } catch (err) {
         console.error('❌ Error al actualizar club:', err);
         res.status(500).json({ error: 'Error al actualizar club' });
-    }
-});
-
-
-
-
-app.post('/login-club', async (req, res) => {
-    const { email, password } = req.body;
-    try {
-        const club = await Club.findOne({ email });
-        if (!club) return res.status(400).json({ error: 'Club no encontrado' });
-        const match = await bcrypt.compare(password, club.password);
-        if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
-        res.json({ mensaje: 'Login exitoso', nombre: club.nombre });
-    } catch (error) {
-        res.status(500).json({ error: 'Error al iniciar sesión del club' });
     }
 });
 
