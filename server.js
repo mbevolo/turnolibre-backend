@@ -61,13 +61,6 @@ app.use((req, res, next) => {
 });
 
 
-const allowed = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
-
-
 // Rate limits para rutas sensibles
 const sensitiveLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 app.use('/login', sensitiveLimiter);
