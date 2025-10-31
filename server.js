@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
+
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoose = require('mongoose');
@@ -19,9 +19,36 @@ const PaymentEvent = require('./models/PaymentEvent');
 const crypto = require('crypto');
 const { sendMail } = require('./utils/email');
 const jwt = require('jsonwebtoken');
-
 const app = express();
 
+// ==============================
+// CORS CONFIG (revisado para Render + Vercel)
+// ==============================
+const cors = require('cors');
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:5500',
+  'http://localhost:5500',
+  'https://turnolibre-frontend.vercel.app',
+  'https://turnolibre.com.ar'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // permite herramientas locales o llamadas sin origen
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      console.log('❌ Bloqueado por CORS:', origin);
+      return callback(new Error('No permitido por CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
 // Configuración global de MercadoPago (fallback para webhooks, etc.)
 mercadopago.configure({ access_token: process.env.MP_ACCESS_TOKEN });
 
@@ -39,25 +66,6 @@ const allowed = (process.env.ALLOWED_ORIGINS || '')
   .map(s => s.trim())
   .filter(Boolean);
 
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true); // herramientas locales / file://
-
-    try {
-      const url = new URL(origin);
-      const hostOk = ['localhost', '127.0.0.1'].includes(url.hostname);
-      if (hostOk) return cb(null, true);
-
-      if (allowed.length === 0 || allowed.includes(origin)) {
-        return cb(null, true);
-      }
-      return cb(new Error('Origen no permitido: ' + origin));
-    } catch {
-      return cb(new Error('Origen inválido: ' + origin));
-    }
-  },
-  credentials: true
-}));
 
 
 // Rate limits para rutas sensibles
