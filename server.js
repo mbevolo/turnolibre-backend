@@ -31,7 +31,7 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://127.0.0.1:5500',
   'http://localhost:5500',
-  'https://turnolibre-frontend.vercel.app',
+  'https://turnolibre-frontend-f6iq3w8s3-martin-bevolos-projects.vercel.app',
   'https://turnolibre.com.ar'
 ];
 
