@@ -17,23 +17,37 @@ const ubicacionesRoute = require('./routes/ubicaciones');
 const { celebrate, Joi, Segments, errors } = require('celebrate');
 const PaymentEvent = require('./models/PaymentEvent');
 const crypto = require('crypto');
-const { sendMail } = require('./utils/email');   // ✅ Brevo
+const { sendMail } = require('./utils/email');
 const clubRoutes = require("./routes/club");
 const statsRoutes = require("./routes/stats");
 
 const app = express();
 
 // ============================================
-// 🔓 CORS PERMITIDO PARA DESARROLLO / PRODUCCIÓN
+// 🎯 CORS SEGURO Y COMPATIBLE CON VERZEL + CLOUDFLARE
 // ============================================
+const allowedOrigins = [
+  "https://turnolibre.com.ar",
+  "https://www.turnolibre.com.ar",
+  "https://turnolibre-frontend.vercel.app",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
+];
+
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
+
   next();
 });
 
@@ -50,6 +64,7 @@ app.use("/api/club", clubRoutes);
 app.use("/api/stats", statsRoutes);
 app.use('/ubicaciones', ubicacionesRoute);
 app.use('/superadmin', superadminRoutes);
+
 
 // ============================================
 // MercadoPago
