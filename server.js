@@ -23,6 +23,18 @@ const statsRoutes = require("./routes/stats");
 
 const app = express();
 app.set('trust proxy', 1);
+app.use(helmet());
+// ============================================
+// 🚦 Límite de peticiones (rate limit)
+// ============================================
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 300,                 // hasta 300 requests por IP en 15 min
+  standardHeaders: true,    // info en headers RateLimit-*
+  legacyHeaders: false,     // desactiva X-RateLimit-*
+});
+
+app.use(apiLimiter);
 
 
 // ============================================
