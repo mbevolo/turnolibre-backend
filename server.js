@@ -22,6 +22,8 @@ const clubRoutes = require("./routes/club");
 const statsRoutes = require("./routes/stats");
 
 const app = express();
+app.set('trust proxy', 1);
+
 
 // ============================================
 // 🎯 CORS SEGURO Y COMPATIBLE CON VERZEL + CLOUDFLARE
