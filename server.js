@@ -449,6 +449,7 @@ app.post(
           precio: precioCalculado,
           usuarioReservado, emailReservado,
           usuarioId: usuario?._id,
+          telefonoReservado: usuario?.telefono || null,
           pagado: false, canchaId
         });
         await turno.save();
@@ -1050,8 +1051,11 @@ app.get('/reservas/:clubEmail', async (req, res) => {
         usuarioNombre: r.usuarioDoc ? r.usuarioDoc.nombre : "",
         usuarioApellido: r.usuarioDoc ? r.usuarioDoc.apellido : "",
         usuarioEmail: r.usuarioDoc ? r.usuarioDoc.email : "",
-        usuarioTelefono: r.usuarioDoc ? r.usuarioDoc.telefono : "",
-      };
+     usuarioTelefono:
+  r.usuarioDoc?.telefono ||
+  r.telefonoReservado ||
+  null,
+};
     });
 
     res.json(reservasConNombre);
