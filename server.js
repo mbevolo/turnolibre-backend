@@ -203,35 +203,62 @@ app.post('/reservas/reenviar-confirmacion', async (req, res) => {
 app.get('/reservas/confirmar/:id/:code', async (req, res) => {
   try {
     const { id, code } = req.params;
-    const reserva = await Reserva.findById(id);
+
+    // Traigo la reserva y, si tiene usuarioId, lo lleno
+    const reserva = await Reserva.findById(id).populate('usuarioId');
 
     if (!reserva) return res.send('❌ Reserva no encontrada.');
     if (reserva.estado !== 'PENDING') return res.send('⚠️ Esta reserva ya fue confirmada o expirada.');
     if (new Date() > reserva.expiresAt) return res.send('⏰ El enlace ha expirado.');
     if (reserva.codigoOTP !== code) return res.send('❌ Código inválido.');
 
+    // Busco la cancha
+    const cancha = await Cancha.findById(reserva.canchaId);
+    if (!cancha) return res.send('⚠️ Cancha no encontrada para esta reserva.');
+
+    // Calculo precio real (incluyendo nocturno si corresponde)
+    let precioTurno = cancha.precio;
+    if (reserva.fecha && reserva.hora) {
+      const [Y, M, D] = reserva.fecha.split('-').map(Number);
+      const [h, mm] = reserva.hora.split(':').map(Number);
+      const inicio = new Date(Y, M - 1, D, h, mm, 0, 0);
+      precioTurno = calcularPrecioTurno(cancha, inicio);
+    }
+
+    // Armo el teléfono, si lo tengo
+    let telefono = null;
+
+    if (reserva.usuarioTelefono) {
+      telefono = String(reserva.usuarioTelefono);
+    } else if (reserva.usuarioId && reserva.usuarioId.telefono) {
+      telefono = String(reserva.usuarioId.telefono);
+    }
+
+    if (telefono) {
+      // dejo solo dígitos
+      telefono = telefono.replace(/\D/g, '');
+      // saco 0 inicial
+      if (telefono.startsWith('0')) telefono = telefono.slice(1);
+      // fuerzo 549 adelante
+      if (!telefono.startsWith('549')) telefono = '549' + telefono;
+    }
+
+    // Marco la reserva como confirmada
     reserva.estado = 'CONFIRMED';
     reserva.codigoOTP = null;
     await reserva.save();
 
-    const cancha = await Cancha.findById(reserva.canchaId);
-    if (!cancha) return res.send('⚠️ Cancha no encontrada para esta reserva.');
-
-    const clubEmail = cancha.clubEmail;
+    // Creo el turno definitivo
     const nuevoTurno = new Turno({
       deporte: cancha.deporte,
       fecha: reserva.fecha,
       hora: reserva.hora,
-      club: clubEmail,
-      precio: cancha.precio,
-      usuarioReservado: reserva.emailContacto,
+      club: cancha.clubEmail,
+      precio: precioTurno,
+      usuarioReservado: reserva.emailContacto,  // de momento usamos el mail como identificador visible
       emailReservado: reserva.emailContacto,
-      telefonoReservado: 
-    reserva.usuarioTelefono || 
-    reserva.usuarioId?.telefono || 
-    null,
-
-      usuarioId: reserva.usuarioId || null,
+      telefonoReservado: telefono || null,
+      usuarioId: reserva.usuarioId ? reserva.usuarioId._id : null,
       pagado: false,
       canchaId: cancha._id
     });
@@ -245,6 +272,7 @@ app.get('/reservas/confirmar/:id/:code', async (req, res) => {
     res.send('Error al confirmar y registrar reserva.');
   }
 });
+
 
 // ===============================
 // Reenviar correo por ID
