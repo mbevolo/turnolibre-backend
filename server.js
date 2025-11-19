@@ -23,6 +23,9 @@ const statsRoutes = require("./routes/stats");
 
 const app = express();
 
+app.set("trust proxy", 1);
+
+
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
   : [];
@@ -89,21 +92,6 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.error('🔴 Error de conexión a MongoDB', err));
 
 
-  // ===============================
-// 📧 SISTEMA DE RESERVAS CON CONFIRMACIÓN POR EMAIL
-// ===============================
-const nodemailer = require('nodemailer');
-const Reserva = require('./models/Reserva');
-
-// Configuración del servicio de correo
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
 // Crear reserva pendiente y enviar email de confirmación
 app.post('/reservas/hold', async (req, res) => {
   try {
@@ -114,7 +102,7 @@ app.post('/reservas/hold', async (req, res) => {
     }
 
     const codigoOTP = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutos
+    const expiresAt = new Date(Date.now() + 10 * 60000);
 
     const reserva = new Reserva({
       canchaId,
@@ -130,18 +118,14 @@ app.post('/reservas/hold', async (req, res) => {
 
     const link = `${process.env.FRONT_URL}/confirmar-reserva.html?id=${reserva._id}&code=${codigoOTP}`;
 
-    // Enviar el email
-    await transporter.sendMail({
-      from: `"TurnoLibre" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Confirmá tu reserva en TurnoLibre',
-      html: `
-        <h2>Confirmación de reserva</h2>
-        <p>Hacé clic en el siguiente enlace para confirmar tu reserva:</p>
-        <p><a href="${link}" target="_blank">${link}</a></p>
-        <p>El enlace vence en 10 minutos.</p>
-      `
-    });
+    const html = `
+      <h2>Confirmación de reserva</h2>
+      <p>Confirmá tu reserva haciendo clic en el siguiente enlace:</p>
+      <p><a href="${link}">${link}</a></p>
+      <p>El enlace vence en 10 minutos.</p>
+    `;
+
+    await sendMail(email, 'Confirmá tu reserva en TurnoLibre', html);
 
     res.json({ mensaje: 'Te enviamos un email para confirmar tu reserva.', reservaId: reserva._id });
   } catch (error) {
@@ -149,6 +133,7 @@ app.post('/reservas/hold', async (req, res) => {
     res.status(500).json({ error: 'Error al crear reserva pendiente.' });
   }
 });
+
 
 // ===============================
 // 🔁 REENVIAR CORREO DE CONFIRMACIÓN
@@ -172,20 +157,15 @@ app.post('/reservas/reenviar-confirmacion', async (req, res) => {
 
     const link = `${process.env.FRONT_URL}/confirmar-reserva.html?id=${reserva._id}&code=${reserva.codigoOTP}`;
 
-    await transporter.sendMail({
-      from: `"TurnoLibre" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Reenvío de confirmación de reserva - TurnoLibre',
-      html: `
-        <h2>Reenvío de confirmación</h2>
-        <p>Hacé clic en el siguiente enlace para confirmar tu reserva:</p>
-        <p><a href="${link}" target="_blank">${link}</a></p>
-        <p>Recordá que el enlace vence en 10 minutos desde que se creó la reserva.</p>
-      `
-    });
+    const html = `
+      <h2>Reenvío de confirmación</h2>
+      <p>Hacé clic en el siguiente enlace para confirmar tu reserva:</p>
+      <p><a href="${link}">${link}</a></p>
+    `;
 
-    console.log(`📧 Reenviado email de confirmación a ${email}`);
-    res.json({ mensaje: 'Te reenviamos el correo de confirmación.' });
+    await sendMail(email, 'Confirmá tu reserva en TurnoLibre', html);
+
+    res.json({ mensaje: 'Correo reenviado correctamente.' });
   } catch (error) {
     console.error('❌ Error en /reservas/reenviar-confirmacion:', error);
     res.status(500).json({ error: 'Error al reenviar el correo.' });
@@ -254,19 +234,13 @@ app.post('/reservas/:id/reenviar', async (req, res) => {
 
     const link = `${process.env.FRONT_URL}/confirmar-reserva.html?id=${reserva._id}&code=${reserva.codigoOTP}`;
 
-    await transporter.sendMail({
-      from: `"TurnoLibre" <${process.env.EMAIL_USER}>`,
-      to: reserva.emailContacto,
-      subject: 'Reenvío: confirmá tu reserva en TurnoLibre',
-      html: `
-        <h2>Confirmación de reserva</h2>
-        <p>Hacé clic en el siguiente enlace para confirmar tu reserva:</p>
-        <p><a href="${link}" target="_blank">${link}</a></p>
-        <p>El enlace vence en 10 minutos.</p>
-      `
-    });
+    const html = `
+      <h2>Confirmación de reserva</h2>
+      <p>Hacé clic en este enlace para confirmar tu reserva:</p>
+      <p><a href="${link}">${link}</a></p>
+    `;
 
-    console.log(`📩 Reenviado email de confirmación a ${reserva.emailContacto}`);
+    await sendMail(reserva.emailContacto, 'Confirmá tu reserva en TurnoLibre', html);
 
     res.json({ mensaje: 'Correo reenviado correctamente.' });
   } catch (error) {
@@ -274,6 +248,7 @@ app.post('/reservas/:id/reenviar', async (req, res) => {
     res.status(500).json({ error: 'Error al reenviar correo de confirmación.' });
   }
 });
+
 
 // 🗑️ Cancelar una reserva pendiente
 app.patch('/reservas/:id/cancelar', async (req, res) => {
