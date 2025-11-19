@@ -20,6 +20,8 @@ const crypto = require('crypto');
 const { sendMail } = require('./utils/email');
 const clubRoutes = require("./routes/club"); 
 const statsRoutes = require("./routes/stats");
+const Reserva = require('./models/Reserva');
+
 
 const app = express();
 
