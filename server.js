@@ -113,7 +113,7 @@ const Reserva = require('./models/Reserva');
 // ===============================
 app.post('/reservas/hold', async (req, res) => {
   try {
-    const { canchaId, fecha, hora, usuarioId, email } = req.body;
+   const { canchaId, fecha, hora, usuarioId, email, telefono } = req.body;
 
     if (!canchaId || !fecha || !hora || !email) {
       return res.status(400).json({ error: 'Faltan datos obligatorios.' });
@@ -136,12 +136,14 @@ app.post('/reservas/hold', async (req, res) => {
       usuarioId,
       emailContacto: email,
       usuarioTelefono,   // 👈 AGREGADO
+      telefonoContacto: telefono,
       estado: 'PENDING',
       codigoOTP,
       expiresAt
     });
 
     await reserva.save();
+
 
     const link = `${process.env.FRONT_URL}/confirmar-reserva.html?id=${reserva._id}&code=${codigoOTP}`;
 
@@ -258,19 +260,23 @@ app.get('/reservas/confirmar/:id/:code', async (req, res) => {
     reserva.codigoOTP = null;
     await reserva.save();
 
-    // Creo el turno definitivo
-// obtener teléfono final
-let telefonoFinal = null;
+ let telefonoFinal = null;
 
-// si la reserva tiene usuarioTelefono, lo usamos
-if (reserva.usuarioTelefono) {
+// teléfono ingresado por el usuario desde index.html
+if (reserva.telefonoContacto) {
+  telefonoFinal = reserva.telefonoContacto;
+}
+
+// teléfono capturado en vieja lógica (por si existe)
+else if (reserva.usuarioTelefono) {
   telefonoFinal = reserva.usuarioTelefono;
 }
 
-// si el usuario estaba logueado y tiene teléfono, lo usamos
+// teléfono del usuario registrado (si estaba logueado)
 else if (reserva.usuarioId && reserva.usuarioId.telefono) {
   telefonoFinal = reserva.usuarioId.telefono;
 }
+
 
 // normalizar formato 549...
 function normalizarTelefono(tel) {
