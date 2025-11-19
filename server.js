@@ -111,12 +111,20 @@ const Reserva = require('./models/Reserva');
 // ===============================
 // Crear reserva pendiente y enviar email de confirmación
 // ===============================
-app.post('/reservas/hold', async (req, res) => {
-  try {
+try {
     const { canchaId, fecha, hora, usuarioId, email } = req.body;
 
     if (!canchaId || !fecha || !hora || !email) {
       return res.status(400).json({ error: 'Faltan datos obligatorios.' });
+    }
+
+    // obtenemos teléfono del usuario logueado (B)
+    let usuarioTelefono = null;
+    if (usuarioId) {
+      const usuario = await Usuario.findById(usuarioId);
+      if (usuario && usuario.telefono) {
+        usuarioTelefono = usuario.telefono; // ✔ guardamos el teléfono en la reserva
+      }
     }
 
     // Código de verificación + expiración
@@ -129,15 +137,16 @@ app.post('/reservas/hold', async (req, res) => {
       hora,
       usuarioId,
       emailContacto: email,
+      usuarioTelefono,     // 👈 AGREGADO
       estado: 'PENDING',
       codigoOTP,
       expiresAt
     });
+
     await reserva.save();
 
     const link = `${process.env.FRONT_URL}/confirmar-reserva.html?id=${reserva._id}&code=${codigoOTP}`;
 
-    // ✅ Enviar email vía Brevo
     await sendMail(
       email,
       'Confirmá tu reserva en TurnoLibre',
@@ -150,11 +159,11 @@ app.post('/reservas/hold', async (req, res) => {
     );
 
     res.json({ mensaje: 'Te enviamos un email para confirmar tu reserva.', reservaId: reserva._id });
-  } catch (error) {
+} catch (error) {
     console.error('❌ Error en /reservas/hold:', error);
     res.status(500).json({ error: 'Error al crear reserva pendiente.' });
-  }
-});
+}
+
 
 // ===============================
 // Reenviar correo de confirmación (por email)
