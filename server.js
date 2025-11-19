@@ -1154,7 +1154,8 @@ app.post('/registrar', async (req, res) => {
     await nuevoUsuario.save();
 
     // Enviar email con Brevo
-   const link = `${process.env.FRONT_URL}/verificar-email?token=${token}&tipo=usuario`;
+   const link = `${process.env.APP_BASE_URL}/verificar-email?token=${token}&tipo=usuario`;
+
 
     const html = `
       <div style="font-family:Arial,Helvetica,sans-serif">
@@ -1239,7 +1240,7 @@ app.post('/reenviar-verificacion', async (req, res) => {
     user.emailVerifyExpires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 horas
     await user.save();
 
-    const verifyLink = `${process.env.FRONT_URL}/verificar-email?token=${token}`;
+    const verifyLink = `${process.env.APP_BASE_URL}/verificar-email?token=${token}`;
 console.log('[DEV] Link de verificación:', verifyLink);
 
     // Envío (si SMTP no está configurado, utils/email.js lo simula y no rompe)
@@ -1503,7 +1504,7 @@ app.post('/recuperar', async (req, res) => {
     usuario.resetTokenExp = new Date(Date.now() + 3600000); // 1 hora
     await usuario.save();
 
-    const link = `${process.env.FRONT_URL}/reset.html?token=${token}&tipo=usuario`;
+    const link = `${process.env.APP_BASE_URL}/reset.html?token=${token}&tipo=usuario`;
 
     await sendMail(
   usuario.email,
@@ -1570,7 +1571,7 @@ app.post('/recuperar-club', async (req, res) => {
     club.resetTokenExp = new Date(Date.now() + 3600000); // 1 hora
     await club.save();
 
-    const link = `${process.env.FRONT_URL}/reset.html?token=${token}&tipo=club`;
+    const link = `${process.env.APP_BASE_URL}/reset.html?token=${token}&tipo=club`;
 
 await sendMail(
   club.email,
@@ -1647,8 +1648,8 @@ app.get('/verificar-email', async (req, res) => {
 
   const redirectUrl =
   tipo === 'club'
-    ? `${process.env.FRONT_URL}/login-club.html?verified=1`
-    : `${process.env.FRONT_URL}/login.html?verified=1`;
+    ? `${process.env.APP_BASE_URL}/login-club.html?verified=1`
+    : `${process.env.APP_BASE_URL}/login.html?verified=1`;
 
     return res.redirect(redirectUrl);
   } catch (error) {
