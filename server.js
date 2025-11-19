@@ -226,6 +226,7 @@ app.get('/reservas/confirmar/:id/:code', async (req, res) => {
       precio: cancha.precio,
       usuarioReservado: reserva.emailContacto,
       emailReservado: reserva.emailContacto,
+      telefonoReservado,
       usuarioId: reserva.usuarioId || null,
       pagado: false,
       canchaId: cancha._id
@@ -416,7 +417,9 @@ app.post(
       usuarioReservado: Joi.string().max(100).required(),
       emailReservado: Joi.string().email().required(),
       metodoPago: Joi.string().valid('online', 'efectivo').required(),
-      canchaId: Joi.string().required()
+      canchaId: Joi.string().required(),
+      telefonoReservado: Joi.string().min(6).max(30).required(),
+
     })
   }),
   async (req, res) => {
