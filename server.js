@@ -1244,13 +1244,14 @@ console.log('[DEV] Link de verificación:', verifyLink);
 
     // Envío (si SMTP no está configurado, utils/email.js lo simula y no rompe)
     try {
-      await sendMail({
-        to: email,
-        subject: 'Verificá tu email - TurnoLibre',
-        html: `<p>Hola ${user.nombre || ''},</p>
-               <p>Confirmá tu correo haciendo click aquí:</p>
-               <p><a href="${verifyLink}">${verifyLink}</a></p>`
-      });
+await sendMail(
+  email,
+  'Verificá tu email - TurnoLibre',
+  `<p>Hola ${user.nombre || ''},</p>
+   <p>Confirmá tu correo haciendo click aquí:</p>
+   <p><a href="${verifyLink}">${verifyLink}</a></p>`
+);
+
     } catch (e) {
       console.warn('[email] No se pudo enviar, seguimos igual:', e.message);
     }
@@ -1504,16 +1505,17 @@ app.post('/recuperar', async (req, res) => {
 
     const link = `${process.env.APP_BASE_URL}/reset.html?token=${token}&tipo=usuario`;
 
-    await sendMail({
-      to: usuario.email,
-      subject: 'Recuperar contraseña - TurnoLibre',
-      html: `
-        <h2>Recuperación de contraseña</h2>
-        <p>Hacé clic en el siguiente enlace para restablecer tu contraseña:</p>
-        <p><a href="${link}" target="_blank">${link}</a></p>
-        <p>Este enlace vence en 1 hora.</p>
-      `
-    });
+    await sendMail(
+  usuario.email,
+  'Recuperar contraseña - TurnoLibre',
+  `
+    <h2>Recuperación de contraseña</h2>
+    <p>Hacé clic en el siguiente enlace para restablecer tu contraseña:</p>
+    <p><a href="${link}" target="_blank">${link}</a></p>
+    <p>Este enlace vence en 1 hora.</p>
+  `
+);
+
 
     res.json({ mensaje: 'Correo de recuperación enviado correctamente.' });
   } catch (error) {
@@ -1570,16 +1572,17 @@ app.post('/recuperar-club', async (req, res) => {
 
     const link = `${process.env.APP_BASE_URL}/reset.html?token=${token}&tipo=club`;
 
-    await sendMail({
-      to: club.email,
-      subject: 'Recuperar contraseña - TurnoLibre (Club)',
-      html: `
-        <h2>Recuperación de contraseña</h2>
-        <p>Hacé clic en el siguiente enlace para restablecer tu contraseña del club:</p>
-        <p><a href="${link}" target="_blank">${link}</a></p>
-        <p>Este enlace vence en 1 hora.</p>
-      `
-    });
+await sendMail(
+  club.email,
+  'Recuperar contraseña - TurnoLibre (Club)',
+  `
+    <h2>Recuperación de contraseña</h2>
+    <p>Hacé clic en el siguiente enlace para restablecer tu contraseña del club:</p>
+    <p><a href="${link}" target="_blank">${link}</a></p>
+    <p>Este enlace vence en 1 hora.</p>
+  `
+);
+
 
     res.json({ mensaje: 'Correo de recuperación enviado correctamente al club.' });
   } catch (error) {
