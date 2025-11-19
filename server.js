@@ -1114,12 +1114,13 @@ res.json(reservasConNombre);
 
 app.post('/registrar', async (req, res) => {
   const { nombre, apellido, telefono, email, password } = req.body;
+
   try {
     if (!email || !password || !nombre || !apellido) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
 
-        // ✅ Validar complejidad de la contraseña
+    // Validar contraseña
     if (!password || password.length < 6 || !/\d/.test(password) || !/[A-Za-z]/.test(password)) {
       return res.status(400).json({
         error: 'La contraseña debe tener al menos 6 caracteres e incluir una letra y un número.'
@@ -1129,15 +1130,15 @@ app.post('/registrar', async (req, res) => {
     const existe = await Usuario.findOne({ email });
     if (existe) return res.status(400).json({ error: 'El usuario ya existe' });
 
-    // Normalizar teléfono (opcional, coherente con frontend/backend)
+    // Normalizar teléfono
     const tel = String(telefono || '').replace(/\D/g, '');
     const telefonoNormalizado = tel.startsWith('549') ? tel : ('549' + tel);
 
     const hash = await bcrypt.hash(password, 10);
 
-    // Generar token de verificación (válido 24h)
+    // Token de verificación válido por 24h
     const token = crypto.randomBytes(32).toString('hex');
-    const expira = new Date(Date.now() + 24*60*60*1000);
+    const expira = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const nuevoUsuario = new Usuario({
       nombre,
@@ -1152,37 +1153,40 @@ app.post('/registrar', async (req, res) => {
 
     await nuevoUsuario.save();
 
-    // Enviar email con link
+    // Enviar email con Brevo
     const link = `${process.env.APP_BASE_URL}/verificar-email?token=${token}&tipo=usuario`;
+
     const html = `
       <div style="font-family:Arial,Helvetica,sans-serif">
         <h2>¡Bienvenido/a a TurnoLibre!</h2>
         <p>Para activar tu cuenta, por favor verificá tu email haciendo clic en el botón:</p>
         <p>
-          <a href="${link}" style="background:#2c7be5;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block">
+          <a href="${link}" 
+             style="background:#2c7be5;color:#fff;padding:10px 16px;border-radius:6px;
+             text-decoration:none;display:inline-block">
             Verificar mi email
           </a>
         </p>
-        <p>O copiá y pegá este enlace en tu navegador:<br>${link}</p>
+        <p>O copiá y pegá este enlace:<br>${link}</p>
         <hr/>
         <small>Este enlace vence en 24 horas.</small>
       </div>
     `;
 
     try {
-      await sendMail({ to: email, subject: 'Verificá tu email en TurnoLibre', html });
+      await sendMail(email, 'Verificá tu email en TurnoLibre', html);
     } catch (e) {
-      // Si el mail falla, podés permitir login como no verificado, o forzar reintento
       console.error('❌ Error enviando email de verificación:', e);
-      // seguimos devolviendo ok para no filtrar emails válidos
     }
 
     return res.json({ mensaje: 'Usuario registrado. Revisa tu email para verificar la cuenta.' });
+
   } catch (error) {
     console.error('❌ Error en /registrar:', error);
     res.status(500).json({ error: 'Error al registrar usuario' });
   }
 });
+
 
 
 // Asegurate de tener arriba: const bcrypt = require('bcrypt');
