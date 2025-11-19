@@ -446,6 +446,27 @@ app.put('/club/:email/access-token', async (req, res) => {
 // ===============================
 // Reservar turno
 // ===============================
+
+function normalizarTelefono(tel) {
+  if (!tel) return null;
+
+  let numero = String(tel).replace(/\D/g, ''); // dejar solo números
+
+  if (numero.startsWith("0")) numero = numero.slice(1);
+
+  // si empieza con 54 pero no con 549 → convertir a 549
+  if (numero.startsWith("54") && !numero.startsWith("549")) {
+    numero = "9" + numero.slice(2);
+  }
+
+  // si todavía no empieza con 549 → agregarlo
+  if (!numero.startsWith("549")) {
+    numero = "549" + numero;
+  }
+
+  return numero;
+}
+
 app.post(
   '/reservar-turno',
   celebrate({
@@ -493,7 +514,10 @@ app.post(
           precio: precioCalculado,
           usuarioReservado, emailReservado,
           usuarioId: usuario?._id,
-          telefonoReservado: usuario?.telefono || null,
+          telefonoReservado: normalizarTelefono(
+  req.body.telefonoReservado || usuario?.telefono || null
+),
+
           pagado: false, canchaId
         });
         await turno.save();
