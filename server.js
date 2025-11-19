@@ -23,20 +23,25 @@ const statsRoutes = require("./routes/stats");
 
 const app = express();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : [];
 
-// ============================================
-// 🔓 CORS PERMITIDO PARA DESARROLLO LOCAL
-// ============================================
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // permite Postman o llamadas internas
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.log("❌ CORS bloqueado para:", origin);
+    return callback(new Error("CORS no permitido"));
+  },
+  methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
 
 
 // ============================================
