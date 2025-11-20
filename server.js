@@ -120,7 +120,7 @@ app.post('/reservas/hold', async (req, res) => {
     });
     await reserva.save();
 
-  const link = `https://turnolibre.com.ar/confirmar-reserva.html?id=${reserva._id}&code=${codigoOTP}`;
+  const link = `${process.env.FRONT_URL}/confirmar-reserva.html?id=${reserva._id}&code=${codigoOTP}`;
 
     const html = `
       <h2>Confirmación de reserva</h2>
@@ -159,7 +159,7 @@ app.post('/reservas/reenviar-confirmacion', async (req, res) => {
       return res.status(400).json({ error: 'El enlace anterior expiró. Volvé a reservar.' });
     }
 
-const link = `https://turnolibre.com.ar/confirmar-reserva.html?id=${reserva._id}&code=${reserva.codigoOTP}`;
+const link = `${process.env.FRONT_URL}/confirmar-reserva.html?id=${reserva._id}&code=${reserva.codigoOTP}`;
 
     const html = `
       <h2>Reenvío de confirmación</h2>
@@ -236,7 +236,7 @@ app.post('/reservas/:id/reenviar', async (req, res) => {
     reserva.codigoOTP = Math.floor(100000 + Math.random() * 900000).toString();
     await reserva.save();
 
-    const link = `https://turnolibre.com.ar/confirmar-reserva.html?id=${reserva._id}&code=${reserva.codigoOTP}`;
+    const link = `${process.env.FRONT_URL}/confirmar-reserva.html?id=${reserva._id}&code=${reserva.codigoOTP}`;
 
     const html = `
       <h2>Confirmación de reserva</h2>
@@ -1156,7 +1156,7 @@ app.post('/registrar', async (req, res) => {
     await nuevoUsuario.save();
 
     // Enviar email con Brevo
-   const link = `${process.env.APP_BASE_URL}/verificar-email?token=${token}&tipo=usuario`;
+  const link = `${process.env.FRONT_URL}/verificar-email.html?token=${token}&tipo=usuario`;
 
 
     const html = `
@@ -1242,7 +1242,7 @@ app.post('/reenviar-verificacion', async (req, res) => {
     user.emailVerifyExpires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 horas
     await user.save();
 
-    const verifyLink = `${process.env.APP_BASE_URL}/verificar-email?token=${token}`;
+    const verifyLink = `https://turnolibre.com.ar/verificar-email?token=${token}`;
 console.log('[DEV] Link de verificación:', verifyLink);
 
     // Envío (si SMTP no está configurado, utils/email.js lo simula y no rompe)
@@ -1506,7 +1506,7 @@ app.post('/recuperar', async (req, res) => {
     usuario.resetTokenExp = new Date(Date.now() + 3600000); // 1 hora
     await usuario.save();
 
-    const link = `${process.env.APP_BASE_URL}/reset.html?token=${token}&tipo=usuario`;
+    const link = `https://turnolibre.com.ar/reset.html?token=${token}&tipo=usuario`;
 
     await sendMail(
   usuario.email,
@@ -1573,7 +1573,7 @@ app.post('/recuperar-club', async (req, res) => {
     club.resetTokenExp = new Date(Date.now() + 3600000); // 1 hora
     await club.save();
 
-    const link = `${process.env.APP_BASE_URL}/reset.html?token=${token}&tipo=club`;
+    const link = `https://turnolibre.com.ar/reset.html?token=${token}&tipo=club`;
 
 await sendMail(
   club.email,
@@ -1650,8 +1650,9 @@ app.get('/verificar-email', async (req, res) => {
 
   const redirectUrl =
   tipo === 'club'
-    ? `${process.env.APP_BASE_URL}/login-club.html?verified=1`
-    : `${process.env.APP_BASE_URL}/login.html?verified=1`;
+    ? `https://turnolibre.com.ar/login-club.html?verified=1`
+    : `https://turnolibre.com.ar/login.html?verified=1`;
+
 
     return res.redirect(redirectUrl);
   } catch (error) {
